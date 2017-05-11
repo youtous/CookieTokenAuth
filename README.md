@@ -24,8 +24,14 @@ On top of all these security measures, the token cookies are naturally encrypted
 # Installation
 Place the following in your `composer.json`:
 ```
+"repositories": [
+    {
+    "type": "vcs",
+    "url": "https://github.com/youtous/CookieTokenAuth"
+    }
+],
 "require": {
-    "beskhue/cookietokenauth": "1.2.0"
+    "beskhue/cookietokenauth": "dev-master"
 }
 ```
 
