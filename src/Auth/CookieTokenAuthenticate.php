@@ -3,9 +3,12 @@
 namespace Beskhue\CookieTokenAuth\Auth;
 
 use Cake\Auth\BaseAuthenticate;
-use Cake\Network\Request;
-use Cake\Network\Response;
+use Cake\Controller\ComponentRegistry;
+use Cake\Event\Event;
+use Cake\Http\Response;
+use Cake\Http\ServerRequest;
 use Cake\Auth\DefaultPasswordHasher;
+use Cake\ORM\TableRegistry;
 
 class CookieTokenAuthenticate extends BaseAuthenticate
 {
@@ -13,10 +16,10 @@ class CookieTokenAuthenticate extends BaseAuthenticate
     /**
      * Constructor
      *
-     * @param \Cake\Controller\ComponentRegistry $registry The Component registry used on this request.
+     * @param ComponentRegistry $registry The Component registry used on this request.
      * @param array $config Array of config to use.
      */
-    public function __construct(\Cake\Controller\ComponentRegistry $registry, array $config = [])
+    public function __construct(ComponentRegistry $registry, array $config = [])
     {
         $this->_defaultConfig = array_merge($this->_defaultConfig, [
             'hash' => 'sha256', // Only for generating tokens -- the token stored in the database is hashed with the DefaultPasswordHasher
@@ -25,20 +28,21 @@ class CookieTokenAuthenticate extends BaseAuthenticate
                 'expires' => '+10 weeks',
             ],
             'minimizeCookieExposure' => true,
+            'tokenError' => __('A session token mismatch was detected. You have been logged out.')
         ]);
         
         parent::__construct($registry, $config);
     }
-    
+
     /**
      * Authenticate a user based on the request information.
      *
-     * @param \Cake\Network\Request  $request  Request to get authentication information from.
-     * @param \Cake\Network\Response $response A response object that can have headers added.
+     * @param ServerRequest  $request  Request to get authentication information from.
+     * @param Response $response A response object that can have headers added.
      *
      * @return mixed Either false on failure, or an array of user data on success.
      */
-    public function authenticate(Request $request, Response $response)
+    public function authenticate(ServerRequest $request, Response $response)
     {
         // Only attempt to authenticate once per session
         if (!$this->authenticateAttemptedThisSession($request)) {
@@ -49,7 +53,7 @@ class CookieTokenAuthenticate extends BaseAuthenticate
                 
                 $controller = $request->params['controller'];
                 if (!$this->authenticateAttemptedThisSession($request)) {
-                    if ($controller == "CookieTokenAuth") {
+                    if ($controller === 'CookieTokenAuth') {
                         $this->setAuthenticateAttemptedThisSession($request);
                         if ($user = $this->getUser($request)) {
                             $redirectComponent->redirectBack($request, $response);
@@ -81,12 +85,12 @@ class CookieTokenAuthenticate extends BaseAuthenticate
      * Get whether an authentication (on the CookieTokenAuth page) has been 
      * attempted this session.
      *
-     * @param \Cake\Network\Request $request Request to get session from.
+     * @param ServerRequest $request Request to get session from.
      *
      * @return bool True if an authentication has been attempted this session,
      *              false otherwise.
      */
-    public function authenticateAttemptedThisSession(Request $request)
+    public function authenticateAttemptedThisSession(ServerRequest $request)
     {
         $session = $request->session();
         return (bool) $session->read('CookieTokenAuth.attempted');
@@ -95,9 +99,9 @@ class CookieTokenAuthenticate extends BaseAuthenticate
     /**
      * Set the authenticate attempted session flag.
      *
-     * @param \Cake\Network\Request $request Request to get session from.
+     * @param ServerRequest $request Request to get session from.
      */
-    private function setAuthenticateAttemptedThisSession(Request $request)
+    private function setAuthenticateAttemptedThisSession(ServerRequest $request)
     {
         $session = $request->session();
         $session->write('CookieTokenAuth.attempted', true);
@@ -107,11 +111,11 @@ class CookieTokenAuthenticate extends BaseAuthenticate
      * Get a user based on information in the request. Primarily used by stateless authentication
      * systems like basic and digest auth.
      *
-     * @param \Cake\Network\Request $request Request object.
+     * @param ServerRequest $request Request object.
      *
      * @return mixed Either false or an array of user information
      */
-    public function getUser(Request $request)
+    public function getUser(ServerRequest $request)
     {
         return $this->getUserFromCookieData();
     }
@@ -125,7 +129,7 @@ class CookieTokenAuthenticate extends BaseAuthenticate
     {
         $cookieTokenComponent = $this->_registry->load('Beskhue/CookieTokenAuth.CookieToken', $this->_config);
         $flashComponent = $this->_registry->load('Flash');
-        $authTokens = \Cake\ORM\TableRegistry::get('Beskhue/CookieTokenAuth.AuthTokens', $this->_config);
+        $authTokens = TableRegistry::get('Beskhue/CookieTokenAuth.AuthTokens', $this->_config);
 
         $authTokens->removeExpired();
 
@@ -149,7 +153,7 @@ class CookieTokenAuthenticate extends BaseAuthenticate
 
         if (!(new DefaultPasswordHasher())->check($token, $tokenEntity->token)) {
             // Tokens don't match. Probably attempted theft!
-            $flashComponent->error('A session token mismatch was detected. You have been logged out.');
+            $flashComponent->error($this->getConfig('tokenError'), ['key' => 'auth']);
             $authTokens->deleteAllByUser($user);
             $cookieTokenComponent->removeCookie();
 
@@ -166,13 +170,13 @@ class CookieTokenAuthenticate extends BaseAuthenticate
      * Called when the user logs out. Remove the token from the database and 
      * delete the cookie.
      * 
-     * @param \Cake\Event\Event $event The logout event.
+     * @param Event $event The logout event.
      * @param array             $user  The user data.
      */
-    public function logout(\Cake\Event\Event $event, array $user)
+    public function logout(Event $event, array $user)
     {
         $cookieTokenComponent = $this->_registry->load('Beskhue/CookieTokenAuth.CookieToken', $this->_config);
-        $authTokens = \Cake\ORM\TableRegistry::get('Beskhue/CookieTokenAuth.AuthTokens', $this->_config);
+        $authTokens = TableRegistry::get('Beskhue/CookieTokenAuth.AuthTokens', $this->_config);
 
         // Check if cookie is valid
         if ($this->getUserFromCookieData()) {
@@ -188,28 +192,6 @@ class CookieTokenAuthenticate extends BaseAuthenticate
 
         // Remove cookie
         $cookieTokenComponent->removeCookie();
-    }
-    
-    /**
-     * Called after the user is identified by an authentication adapter.
-     * Sets a cookie token if the user was identified by an adapter other
-     * than this one (i.e. an adapter that is not CookieTokenAuthenticate).
-     * 
-     * @param \Cake\Event\Event           $event The afterIdentify event.
-     * @param array                       $user  The user data.
-     * @param \Cake\Auth\BaseAuthenticate $auth  The authentication object that identified the user.
-     */
-    public function afterIdentify(\Cake\Event\Event $event, array $user, \Cake\Auth\BaseAuthenticate $auth)
-    {
-        if($auth == $this) {
-            // The user was identified through this authenticator. Don't set a cookie as a
-            // new token was already generated and set in $this->getUserFromCookieData.
-            return;
-        }
-        
-        $cookieTokenComponent = $this->_registry->load('Beskhue/CookieTokenAuth.CookieToken', $this->_config);
-        
-        $cookieTokenComponent->setCookie($user);
     }
 
     /**
@@ -248,7 +230,6 @@ class CookieTokenAuthenticate extends BaseAuthenticate
     public function implementedEvents()
     {
         return [
-            'Auth.afterIdentify' => 'afterIdentify',
             'Auth.logout' => 'logout',
         ];
     }

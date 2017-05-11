@@ -3,12 +3,14 @@
 namespace Beskhue\CookieTokenAuth\Controller\Component;
 
 use Cake\Controller\Component;
+use Cake\Controller\Component\AuthComponent;
 use Cake\Routing\Router;
 use Cake\Network\Request;
 use Cake\Network\Response;
 
 /**
  * Redirect component.
+ * @property string query_string_redirect
  */
 class RedirectComponent extends Component
 {
@@ -28,9 +30,9 @@ class RedirectComponent extends Component
         
         // The query string key used for remembering the referrered page when getting redirected to login.
         if (defined("\Cake\Controller\Component\AuthComponent::QUERY_STRING_REDIRECT")) {
-            $this->query_string_redirect = \Cake\Controller\Component\AuthComponent::QUERY_STRING_REDIRECT;
+            $this->query_string_redirect = AuthComponent::QUERY_STRING_REDIRECT;
         } else {
-            $this->query_string_redirect = "redirect";
+            $this->query_string_redirect = 'redirect';
         }
     }
 
@@ -52,7 +54,7 @@ class RedirectComponent extends Component
         if ($url) {
             $route['?'][$this->query_string_redirect] = $url;
         } else {
-            $route['?'][$this->query_string_redirect] = $this->request->here(false);
+            $route['?'][$this->query_string_redirect] = Component::getController()->request->here(false);
         }
         
         $resp = $this->controller->redirect(Router::url($route));
@@ -75,7 +77,7 @@ class RedirectComponent extends Component
      */
     public function redirectBack(Request $request, Response $response)
     {
-        if (method_exists($request, "getQuery")) {
+        if (method_exists($request, 'getQuery')) {
             $redirectUrl = $request->getQuery($this->query_string_redirect);
         } else {
             $redirectUrl = $request->query[$this->query_string_redirect];
