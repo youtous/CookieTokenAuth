@@ -24,8 +24,14 @@ On top of all these security measures, the token cookies are naturally encrypted
 # Installation
 Place the following in your `composer.json`:
 ```
+"repositories": [
+    {
+    "type": "vcs",
+    "url": "https://github.com/youtous/CookieTokenAuth"
+    }
+],
 "require": {
-    "beskhue/cookietokenauth": "1.2.0"
+    "beskhue/cookietokenauth": "dev-master"
 }
 ```
 
@@ -97,6 +103,7 @@ The full default configuration is as follows:
     'expires' => '+10 weeks',
 ],
 'minimizeCookieExposure' => true,
+'tokenError' => __('A session token mismatch was detected. You have been logged out.')
 ```
 
 Note that `hash` is used only for generating tokens -- the token stored in the database is hashed with the DefaultPasswordHasher. Its value can be any [PHP hash algorithm](https://php.net/manual/en/function.hash-algos.php).
