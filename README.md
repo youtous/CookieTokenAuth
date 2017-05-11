@@ -114,14 +114,21 @@ If `minimizeCookieExposure` is set to `false`, the client will not be redirected
 Next, you probably want to validate user authentication of non-logged in users in all controllers (note: authentication is only attempted once per session). This makes sure that a user with a valid token cookie will be logged in. To do that, place something like the following in your `AppController`'s `beforeFilter`. Note that you might also have to make changes to the current identification method you are performing. See the next section.
 
 ```
-if(!$this->Auth->user())
+public function beforeFilter(Event $event)
 {
-    $user = $this->Auth->identify();
-    if ($user) {
-        $this->Auth->setUser($user);
-        return $this->redirect($this->Auth->redirectUrl());
-    } 
-}  
+    if (!$this->Auth->user()) {
+        $user = $this->Auth->getAuthenticate('Beskhue/CookieTokenAuth.CookieToken')
+                            ->authenticate($this->request, $this->response);
+        if ($user) {
+            $user = new User($user, ['guard' => false]);
+
+            $this->Auth->setUser($user);
+            return $this->redirect($this->Auth->redirectUrl());
+        }
+    }
+        
+    return parent::beforeFilter($event);
+}
 ```
 
 ## Create Token Cookies
@@ -129,20 +136,17 @@ if(!$this->Auth->user())
 You need to generate the cookie as follows. This will create a token, add it to the database, and the user's client will receive a cookie for the token. You would probably want to make sure the user is identified only once per session.
 
 ```
-public function identify()
+public function login()
 {
-    $this->loadComponent('Beskhue/CookieTokenAuth.CookieToken', [
-        'hash' => 'sha256',
-        'cookie' => [
-            'name' => 'userdata',
-            'expires' => '+10 weeks',
-        ],
-        'minimizeCookieExposure' => true,
-    ]);
-
+    // ...
     $user = $this->Auth->user();
-    if ($user) {
-        $this->CookieToken->setCookie($user);
+    if($user) {
+         $this->Auth->setUser($user);
+         
+         if($this->request->getData('remember_me')) {
+            $this->loadComponent('Beskhue/CookieTokenAuth.CookieToken',$this->Auth->getConfig('authenticate')['Beskhue/CookieTokenAuth.CookieToken']);
+            $this->CookieToken->setCookie($user);
+         }
     }
 }
 ```
