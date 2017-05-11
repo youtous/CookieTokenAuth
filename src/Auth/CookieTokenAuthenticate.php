@@ -3,9 +3,12 @@
 namespace Beskhue\CookieTokenAuth\Auth;
 
 use Cake\Auth\BaseAuthenticate;
+use Cake\Controller\ComponentRegistry;
+use Cake\Event\Event;
 use Cake\Http\Response;
 use Cake\Http\ServerRequest;
 use Cake\Auth\DefaultPasswordHasher;
+use Cake\ORM\TableRegistry;
 
 class CookieTokenAuthenticate extends BaseAuthenticate
 {
@@ -13,10 +16,10 @@ class CookieTokenAuthenticate extends BaseAuthenticate
     /**
      * Constructor
      *
-     * @param \Cake\Controller\ComponentRegistry $registry The Component registry used on this request.
+     * @param ComponentRegistry $registry The Component registry used on this request.
      * @param array $config Array of config to use.
      */
-    public function __construct(\Cake\Controller\ComponentRegistry $registry, array $config = [])
+    public function __construct(ComponentRegistry $registry, array $config = [])
     {
         $this->_defaultConfig = array_merge($this->_defaultConfig, [
             'hash' => 'sha256', // Only for generating tokens -- the token stored in the database is hashed with the DefaultPasswordHasher
@@ -125,7 +128,7 @@ class CookieTokenAuthenticate extends BaseAuthenticate
     {
         $cookieTokenComponent = $this->_registry->load('Beskhue/CookieTokenAuth.CookieToken', $this->_config);
         $flashComponent = $this->_registry->load('Flash');
-        $authTokens = \Cake\ORM\TableRegistry::get('Beskhue/CookieTokenAuth.AuthTokens', $this->_config);
+        $authTokens = TableRegistry::get('Beskhue/CookieTokenAuth.AuthTokens', $this->_config);
 
         $authTokens->removeExpired();
 
@@ -166,13 +169,13 @@ class CookieTokenAuthenticate extends BaseAuthenticate
      * Called when the user logs out. Remove the token from the database and 
      * delete the cookie.
      * 
-     * @param \Cake\Event\Event $event The logout event.
+     * @param Event $event The logout event.
      * @param array             $user  The user data.
      */
-    public function logout(\Cake\Event\Event $event, array $user)
+    public function logout(Event $event, array $user)
     {
         $cookieTokenComponent = $this->_registry->load('Beskhue/CookieTokenAuth.CookieToken', $this->_config);
-        $authTokens = \Cake\ORM\TableRegistry::get('Beskhue/CookieTokenAuth.AuthTokens', $this->_config);
+        $authTokens = TableRegistry::get('Beskhue/CookieTokenAuth.AuthTokens', $this->_config);
 
         // Check if cookie is valid
         if ($this->getUserFromCookieData()) {

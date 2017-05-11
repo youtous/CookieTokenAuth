@@ -3,12 +3,14 @@
 namespace Beskhue\CookieTokenAuth\Controller\Component;
 
 use Cake\Controller\Component;
+use Cake\Controller\Component\AuthComponent;
 use Cake\Routing\Router;
 use Cake\Network\Request;
 use Cake\Network\Response;
 
 /**
  * Redirect component.
+ * @property string query_string_redirect
  */
 class RedirectComponent extends Component
 {
@@ -28,7 +30,7 @@ class RedirectComponent extends Component
         
         // The query string key used for remembering the referrered page when getting redirected to login.
         if (defined("\Cake\Controller\Component\AuthComponent::QUERY_STRING_REDIRECT")) {
-            $this->query_string_redirect = \Cake\Controller\Component\AuthComponent::QUERY_STRING_REDIRECT;
+            $this->query_string_redirect = AuthComponent::QUERY_STRING_REDIRECT;
         } else {
             $this->query_string_redirect = 'redirect';
         }
