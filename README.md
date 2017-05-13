@@ -103,6 +103,7 @@ The full default configuration is as follows:
     'expires' => '+10 weeks',
 ],
 'minimizeCookieExposure' => true,
+'setCookieAfterIdentify' => true,
 'tokenError' => __('A session token mismatch was detected. You have been logged out.')
 ```
 
@@ -132,9 +133,30 @@ public function beforeFilter(Event $event)
 ```
 
 ## Create Token Cookies
+In most cases, CookieTokenAuth automatically generates token cookies for you. No further configuration and integration would be required.
 
-You need to generate the cookie as follows. This will create a token, add it to the database, and the user's client will receive a cookie for the token. You would probably want to make sure the user is identified only once per session.
+When a user logs in with a conventional method (Form, Ldap, etc.) we need to create a token cookie such that the user can be identified by CookieTokenAuth when they return. CookieTokenAuth automatically handles identification performed by authentication adapters that are *not* persistent and *not* stateless. This means that from the included authentication adapters in CakePHP only FormAuthenticate will automatically generate a token cookie. The reason for this is that persistent or stateless identification methods identify the user each request, and would lead to the creation of a new cookie token on each request.
 
+### Handle stateless and persistent authentification
+If you want to handle persistent or stateless authentication identification as well, you could do something as follows. This will create a token, add it to the database, and the user's client will receive a cookie for the token. You would probably want to make sure the user is identified only once per session.
+
+```
+public function identify()
+{
+    $user = $this->Auth->user();
+    if ($user) {
+        $this->loadComponent('Beskhue/CookieTokenAuth.CookieToken',$this->Auth->getConfig('authenticate')['Beskhue/CookieTokenAuth.CookieToken']);
+        $this->CookieToken->setCookie($user);
+    }
+}
+```
+
+
+#### Disable auto-generation of tokens
+
+Sometimes (in the most common use-case), you want to let the user use a 'Remember me' option. In that case, you need to set the `setCookieAfterIdentify` option to `false` (see  configuration's section).
+
+After that, you could do something like that in your login's action.
 ```
 public function login()
 {
@@ -151,4 +173,8 @@ public function login()
 }
 ```
 
-Configure the `hash`, `cookie` and `minimizeCookieExposure` the same as for the authentication component of the plugin.
+And in your login template 
+```
+<?= $this->Form->checkbox('remember_me', ['id' => 'remember-me']) ?>
+<?= $this->Form->label('remember_me', __('Remember me')) ?>
+```
