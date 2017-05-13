@@ -204,7 +204,7 @@ class CookieTokenAuthenticate extends BaseAuthenticate
      * delete the cookie.
      *
      * @param Event $event The logout event.
-     * @param array $user The user data.
+     * @param array $user  The user data.
      */
     public function logout(Event $event, array $user)
     {
