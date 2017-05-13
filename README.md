@@ -155,7 +155,7 @@ public function identify()
 ```
 
 
-#### Disable auto-generation of tokens
+### Disable auto-generation of tokens
 
 Sometimes (in the most common use-case), you want to let the user use a 'Remember me' option. In that case, you need to set the `setCookieAfterIdentify` option to `false` (see  configuration's section).
 
