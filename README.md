@@ -144,6 +144,23 @@ When a user logs in with a conventional method (Form, Ldap, etc.) we need to cre
 If you want to handle persistent or stateless authentication identification as well, you could do something as follows. This will create a token, add it to the database, and the user's client will receive a cookie for the token. You would probably want to make sure the user is identified only once per session.
 
 ```
+public function identify()
+{
+    $user = $this->Auth->user();
+    if ($user) {
+        $this->loadComponent('Beskhue/CookieTokenAuth.CookieToken',$this->Auth->getConfig('authenticate')['Beskhue/CookieTokenAuth.CookieToken']);
+        $this->CookieToken->setCookie($user);
+    }
+}
+```
+
+
+#### Disable auto-generation of tokens
+
+Sometimes (in the most common use-case), you want to let the user use a 'Remember me' option. In that case, you need to set the `setCookieAfterIdentify` option to `false` (see  configuration's section).
+
+After that, you could do something like that in your login's action.
+```
 public function login()
 {
     $this->loadComponent('Beskhue/CookieTokenAuth.CookieToken', [
