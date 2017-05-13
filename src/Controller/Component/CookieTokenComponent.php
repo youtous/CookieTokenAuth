@@ -25,6 +25,7 @@ class CookieTokenComponent extends Component
      *
      * @param $user  The user data.
      * @param $token The token to re-use.
+     * @throws \Cake\Core\Exception\Exception
      */
     public function setCookie($user, $token = null)
     {
@@ -86,6 +87,7 @@ class CookieTokenComponent extends Component
      * Remove the token cookie from the user's browser.
      *
      * Rewrites the cookie with dummy values and expires the cookie.
+     * @throws \Cake\Core\Exception\Exception
      */
     public function removeCookie()
     {
