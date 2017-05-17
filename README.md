@@ -146,6 +146,15 @@ If you want to handle persistent or stateless authentication identification as w
 ```
 public function identify()
 {
+    $this->loadComponent('Beskhue/CookieTokenAuth.CookieToken', [
+        'hash' => 'sha256',
+        'cookie' => [
+            'name' => 'userdata',
+            'expires' => '+10 weeks',
+        ],
+        'minimizeCookieExposure' => true,
+    ]);
+
     $user = $this->Auth->user();
     if ($user) {
         $this->loadComponent('Beskhue/CookieTokenAuth.CookieToken',$this->Auth->getConfig('authenticate')['Beskhue/CookieTokenAuth.CookieToken']);
@@ -163,51 +172,20 @@ After that, you could do something like that in your login's action.
 ```
 public function login()
 {
-    $this->loadComponent('Beskhue/CookieTokenAuth.CookieToken', [
-        'hash' => 'sha256',
-        'cookie' => [
-            'name' => 'userdata',
-            'expires' => '+10 weeks',
-        ],
-        'minimizeCookieExposure' => true,
-    ]);
-
-    $user = $this->Auth->user();
-    if ($user) {
-        $this->loadComponent(
-            'Beskhue/CookieTokenAuth.CookieToken',
-            $this->Auth->getConfig('authenticate')['Beskhue/CookieTokenAuth.CookieToken']
-        );
-        $this->CookieToken->setCookie($user);
-    }
-}
-```
-
-
-### Disable automatic generation of token cookies
-You might want to create token cookies only in specific cases, such as when a user checked a ``remember me" checkbox. To do this, start by setting the `setCookieAfterIdentify` option to `false` (see the [Configuration](#configuration) section). You will now need to create token cookies manually.
-
-To accomplish this, something like the following could be added to the login action:
-```
-public function login()
-{
     // ...
     $user = $this->Auth->user();
     if($user) {
          $this->Auth->setUser($user);
          
          if($this->request->getData('remember_me')) {
-            $this->loadComponent(
-                'Beskhue/CookieTokenAuth.CookieToken',
-                $this->Auth->getConfig('authenticate')['Beskhue/CookieTokenAuth.CookieToken']
-            );
+            $this->loadComponent('Beskhue/CookieTokenAuth.CookieToken',$this->Auth->getConfig('authenticate')['Beskhue/CookieTokenAuth.CookieToken']);
             $this->CookieToken->setCookie($user);
          }
     }
 }
 ```
 
-And add the following to your login template:
+And in your login template 
 ```
 <?= $this->Form->checkbox('remember_me', ['id' => 'remember-me']) ?>
 <?= $this->Form->label('remember_me', __('Remember me')) ?>
